@@ -184,6 +184,12 @@ internal struct PhotinoNativeParameters
     ///<summary>Set when GetParamErrors() is called, prior to initializing the native window. It is a check to make sure the struct matches what C++ is expecting.</summary>
     [MarshalAs(UnmanagedType.I4)] internal int Size;
 
+    [MarshalAs(UnmanagedType.I1)] internal bool CompositionHosting;
+
+    [MarshalAs(UnmanagedType.I4)] internal int AutoSuspendOnMinimize;
+
+    [MarshalAs(UnmanagedType.I4)] internal int SurfaceHostMode;
+
 
     ///<summary>Checks the parameters to ensure they are valid before window creation. Called by PhotinoWindow prior to initializing native window.</summary>
     ///<returns>List of error strings</returns>
@@ -210,7 +216,7 @@ internal struct PhotinoNativeParameters
         if (isWindows && Chromeless && (UseOsDefaultLocation || UseOsDefaultSize))
             response.Add($"Chromeless cannot be used with UseOsDefaultLocation or UseOsDefaultSize on Windows. Size and location must be specified.");
 
-        Size = Marshal.SizeOf(typeof(PhotinoNativeParameters));
+        Size = (int)Marshal.OffsetOf<PhotinoNativeParameters>(nameof(Size)) + sizeof(int);
 
         return response;
     }

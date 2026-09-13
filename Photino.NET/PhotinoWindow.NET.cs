@@ -45,6 +45,7 @@ public partial class PhotinoWindow
         Zoom = 100,
         MaxHeight = int.MaxValue,
         MaxWidth = int.MaxValue,
+        SurfaceHostMode = (int)PhotinoSurfaceHostMode.Frames,
     };
 
     //Pointers to the type and instance.

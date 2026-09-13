@@ -25,15 +25,33 @@
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
 		<Copyright>Copyright (C) 2025</Copyright>
 	</PropertyGroup>
-	
+
+	<PropertyGroup>
+		<PhotinoNativeWinPlatform Condition="'$(PhotinoNativeWinPlatform)' == ''">x64</PhotinoNativeWinPlatform>
+		<PhotinoNativeWinPlatform Condition="$(RuntimeIdentifier.StartsWith('win-arm64'))">ARM64</PhotinoNativeWinPlatform>
+		<PhotinoNativeWinDir>$(MSBuildThisFileDirectory)..\Photino.Native\Photino.Native\$(PhotinoNativeWinPlatform)\Release\</PhotinoNativeWinDir>
+		<PhotinoNativeWinDll>$(PhotinoNativeWinDir)Photino.Native.dll</PhotinoNativeWinDll>
+		<PhotinoUseForkNative Condition="'$(PhotinoUseForkNative)' == '' and Exists('$(PhotinoNativeWinDll)') and ($(RuntimeIdentifier.StartsWith('win')) or ('$(RuntimeIdentifier)' == '' and $([MSBuild]::IsOSPlatform('Windows'))))">true</PhotinoUseForkNative>
+	</PropertyGroup>
+
 	<Target Name="SetPackageVersion" DependsOnTargets="Build">
 		<PropertyGroup>
 			<PackageVersion>$(Version)</PackageVersion>
 		</PropertyGroup>
 	</Target>
 
-  <ItemGroup>
-    <PackageReference Include="Photino.Native" Version="4.0.22" />
-  </ItemGroup>
+	<ItemGroup Condition="'$(PhotinoUseForkNative)' == 'true'">
+		<PackageReference Include="Photino.Native" Version="4.0.22" ExcludeAssets="native" />
+		<None Include="$(PhotinoNativeWinDll)" Link="Photino.Native.dll" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+		<None Include="$(PhotinoNativeWinDir)WebView2Loader.dll" Link="WebView2Loader.dll" CopyToOutputDirectory="PreserveNewest" Visible="false" />
+	</ItemGroup>
+
+	<ItemGroup Condition="'$(PhotinoUseForkNative)' != 'true'">
+		<PackageReference Include="Photino.Native" Version="4.0.22" />
+	</ItemGroup>
+
+	<Target Name="PhotinoWarnMissingForkNative" BeforeTargets="Build" Condition="'$(PhotinoUseForkNative)' != 'true' and $([MSBuild]::IsOSPlatform('Windows')) and !$(RuntimeIdentifier.StartsWith('osx')) and !$(RuntimeIdentifier.StartsWith('linux'))">
+		<Warning Text="Photino fork: native Windows build not found at $(PhotinoNativeWinDll). Falling back to the Photino.Native NuGet binary; CompositionHosting, surfaces and resource suspension are unavailable. Run build-native.cmd in the fork root." />
+	</Target>
 
 </Project>

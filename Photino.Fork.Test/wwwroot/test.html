@@ -1,0 +1,98 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Photino fork test</title>
+<style id="shared-css">
+  html, body { margin: 0; overflow: hidden; background: #111; color: #fff; font: 20px sans-serif; }
+  #main { position: absolute; left: 0; top: 0; width: 100vw; height: 100vh; background: #1d2a4a; box-sizing: border-box; padding: 16px; }
+  #panel { position: absolute; left: 0; top: 0; width: 100vw; height: 100vh; background: #5a1e2a; box-sizing: border-box; padding: 16px; overflow: hidden; }
+  button { font-size: 20px; padding: 8px 16px; }
+  input, select { font-size: 20px; width: 260px; }
+  .hover:hover { outline: 6px solid lime; outline-offset: -6px; }
+  #vis { color: #ffd166; }
+</style>
+</head>
+<body>
+<div id="main" class="hover">
+  <div>MAIN <span id="clock1"></span></div>
+  <div>ticks <span id="t1"></span> raf <span id="r1"></span> fetch ok <span id="f1"></span> fail <span id="f2"></span></div>
+  <div>visibility <span id="vis"></span> viewport <span id="vp"></span></div>
+  <div id="layoutText" style="font-size:13px;opacity:.8;margin-top:8px;word-break:break-all"></div>
+</div>
+<div id="panel" class="hover" style="display:none">
+  <div>SURFACE <span id="clock2"></span> vp <span id="vp2"></span></div>
+  <button id="btn">panel button</button>
+  <div style="margin-top:12px"><input id="inp" placeholder="type here"></div>
+  <div style="margin-top:12px"><select id="sel"><option>One</option><option>Two</option><option>Three</option><option>Four</option></select></div>
+  <div id="inputEcho" style="margin-top:12px"></div>
+</div>
+<script>
+  const port = new URLSearchParams(location.search).get('port');
+  let ticks = 0, raf = 0, fetchOk = 0, fetchFail = 0;
+  let surfaceWin = null;
+  const $ = id => document.getElementById(id);
+  const clock1 = $('clock1'), clock2 = $('clock2'), vp2 = $('vp2'), t1 = $('t1'), r1 = $('r1'), f1 = $('f1'), f2 = $('f2'), vis = $('vis'), vp = $('vp'), layoutText = $('layoutText');
+  const btn = $('btn'), inp = $('inp'), sel = $('sel'), inputEcho = $('inputEcho');
+  function send(o) { window.external.sendMessage(JSON.stringify(o)); }
+  function applyLayout(l) {
+    window.__lastLayout = l;
+    layoutText.textContent = JSON.stringify(l);
+    vp.textContent = window.innerWidth + 'x' + window.innerHeight;
+    send({ t: 'layout', layout: l, innerWidth: window.innerWidth, innerHeight: window.innerHeight });
+  }
+  window.addEventListener('photinolayout', e => applyLayout(e.detail));
+  if (window.__photinoLayout) applyLayout(window.__photinoLayout);
+  window.addEventListener('photinosurface', e => {
+    const d = e.detail;
+    send({ t: 'surfaceevent', type: d.type, id: d.id, hasWindow: !!d.window });
+    try { handleSurface(d); } catch (err) { send({ t: 'surfaceerror', type: d.type, error: String(err && err.stack || err) }); }
+  });
+  function handleSurface(d) {
+    if (d.type === 'ready') {
+      const w = d.window, doc = w.document;
+      doc.head.innerHTML = '<meta charset="utf-8">';
+      const st = doc.createElement('style');
+      st.textContent = document.getElementById('shared-css').textContent;
+      doc.head.appendChild(st);
+      const panelEl = document.getElementById('panel');
+      doc.body.appendChild(doc.adoptNode(panelEl));
+      panelEl.style.display = 'block';
+      doc.addEventListener('mousedown', ev => send({ t: 'md', frame: 'surface', target: ev.target.id, x: ev.clientX, y: ev.clientY, detail: ev.detail }));
+      surfaceWin = w;
+      w.addEventListener('resize', () => send({ t: 'surfaceresize', innerWidth: w.innerWidth, innerHeight: w.innerHeight }));
+      send({ t: 'surfaceready', id: d.id, innerWidth: w.innerWidth, innerHeight: w.innerHeight, mainInnerWidth: window.innerWidth, mainInnerHeight: window.innerHeight, sameHeap: w.Array !== window.Array && typeof w.__photinoDispatch === 'function' });
+    } else if (d.type === 'removed') {
+      surfaceWin = null;
+      send({ t: 'surfaceremoved', id: d.id });
+    }
+  }
+  (function loop() { raf++; requestAnimationFrame(loop); })();
+  setInterval(() => {
+    ticks++;
+    const s = new Date().toLocaleTimeString();
+    clock1.textContent = s;
+    if (surfaceWin) { clock2.textContent = s; vp2.textContent = surfaceWin.innerWidth + 'x' + surfaceWin.innerHeight; }
+    t1.textContent = ticks; r1.textContent = raf; f1.textContent = fetchOk; f2.textContent = fetchFail;
+    vis.textContent = document.visibilityState;
+    send({ t: 'tick', n: ticks, raf, fetchOk, fetchFail, vis: document.visibilityState });
+  }, 250);
+  setInterval(() => {
+    fetch('http://127.0.0.1:' + port + '/ping', { cache: 'no-store' }).then(r => r.ok ? fetchOk++ : fetchFail++).catch(() => fetchFail++);
+  }, 250);
+  btn.onclick = () => { btn.textContent = 'clicked'; send({ t: 'clicked' }); };
+  inp.oninput = () => { inputEcho.textContent = 'typed: ' + inp.value; send({ t: 'input', v: inp.value }); };
+  inp.onfocus = () => send({ t: 'focus', el: 'inp' });
+  sel.onchange = () => send({ t: 'select', v: sel.value });
+  document.addEventListener('mousedown', e => send({ t: 'md', frame: 'main', target: e.target.id, x: e.clientX, y: e.clientY, detail: e.detail }));
+  window.external.receiveMessage(m => {
+    if (m === 'geom') {
+      const r = btn.getBoundingClientRect(), i = inp.getBoundingClientRect(), s = sel.getBoundingClientRect();
+      const active = surfaceWin ? surfaceWin.document.activeElement.id : document.activeElement.id;
+      send({ t: 'geom', btn: { x: r.x + r.width / 2, y: r.y + r.height / 2 }, inp: { x: i.x + i.width / 2, y: i.y + i.height / 2 }, sel: { x: s.x + s.width / 2, y: s.y + s.height / 2 }, active });
+    }
+  });
+  window.addEventListener('load', () => send({ t: 'ready', hasLayout: !!window.__photinoLayout, inFrame: window.top !== window, innerWidth: window.innerWidth, innerHeight: window.innerHeight, photino: !!window.photino }));
+</script>
+</body>
+</html>
