@@ -1256,6 +1256,21 @@ void Photino::OnControllerCreated(ICoreWebView2Controller* controller)
 		.Get(),
 				&permissionRequestedToken);
 
+	EventRegistrationToken processFailedToken;
+	_webviewWindow->add_ProcessFailed(Callback<ICoreWebView2ProcessFailedEventHandler>(
+		[this](ICoreWebView2* sender, ICoreWebView2ProcessFailedEventArgs* args) -> HRESULT {
+			COREWEBVIEW2_PROCESS_FAILED_KIND kind;
+			if (FAILED(args->get_ProcessFailedKind(&kind))) return S_OK;
+			if (kind == COREWEBVIEW2_PROCESS_FAILED_KIND_RENDER_PROCESS_EXITED)
+				_webviewWindow->Reload();
+			else if (kind == COREWEBVIEW2_PROCESS_FAILED_KIND_GPU_PROCESS_EXITED && _compositionHosting && _compositionController && _composition)
+			{
+				_compositionController->put_RootVisualTarget(_composition->GetRootVisualTarget());
+				UpdateWebViewLayout();
+			}
+			return S_OK;
+		}).Get(), &processFailedToken);
+
 	if (_compositionHosting && _compositionController)
 	{
 		EventRegistrationToken cursorToken;

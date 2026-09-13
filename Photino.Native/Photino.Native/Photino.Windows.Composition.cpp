@@ -443,16 +443,38 @@ void Photino::UpdateWebViewLayout()
 		double scale = GetRasterizationScale();
 		double zoom = GetZoomFactor();
 		double cssPerPixel = 1.0 / (scale * zoom);
-		int autoX = (int)std::ceil(width * cssPerPixel);
+		int mainCss = (int)std::ceil(width * cssPerPixel);
+		if (mainCss > _mainSlotWidth) _mainSlotWidth = mainCss;
+
+		std::vector<PhotinoSurface *> autoSurfaces;
+		int end = _mainSlotWidth;
+		for (auto s : _surfaces)
+		{
+			if (s->IsClosed() || !s->IsAutoLayout()) continue;
+			if (s->SlotX() >= 0) end = (std::max)(end, s->SlotX() + s->SlotWidth());
+			autoSurfaces.push_back(s);
+		}
+		for (auto s : autoSurfaces)
+		{
+			int w = (std::max)(1, s->RegionWidth());
+			bool place = s->SlotX() < 0;
+			if (!place)
+			{
+				int x = s->SlotX();
+				int sw = (std::max)(s->SlotWidth(), w);
+				if (x < _mainSlotWidth) place = true;
+				else
+					for (auto o : autoSurfaces)
+						if (o != s && o->SlotX() >= 0 && x < o->SlotX() + o->SlotWidth() && x + sw > o->SlotX()) { place = true; break; }
+				if (!place) s->SetSlot(x, sw);
+			}
+			if (place) { s->SetSlot(end, w); end += w; }
+			s->SetAutoRegionOrigin(s->SlotX(), 0);
+		}
 
 		for (auto s : _surfaces)
 		{
 			if (s->IsClosed()) continue;
-			if (s->IsAutoLayout())
-			{
-				s->SetAutoRegionOrigin(autoX, 0);
-				autoX += s->RegionWidth();
-			}
 			int right = (int)std::ceil((s->RegionX() + s->RegionWidth()) * scale * zoom);
 			int bottom = (int)std::ceil((s->RegionY() + s->RegionHeight()) * scale * zoom);
 			width = (std::max)(width, right);

@@ -25,6 +25,7 @@ internal static class Program
     [DllImport("user32.dll")] private static extern IntPtr GetWindow(IntPtr hWnd, uint cmd);
     [DllImport("user32.dll")] private static extern IntPtr GetAncestor(IntPtr hWnd, uint flags);
     [DllImport("user32.dll")] private static extern bool IsWindowVisible(IntPtr hWnd);
+    [DllImport("user32.dll")] private static extern bool SetWindowPos(IntPtr hWnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
     private delegate bool EnumProc(IntPtr hWnd, IntPtr lParam);
 
     [StructLayout(LayoutKind.Sequential)] private struct RECT { public int Left, Top, Right, Bottom; }
@@ -407,6 +408,8 @@ internal static class Program
                 Screenshot(surface.Handle, "surface-resized");
                 Screenshot(_window.WindowHandle, "main-after");
 
+                RunRapidResizeCheck(surface);
+
                 bool closedEvent = false;
                 surface.Closed += (_, _) => closedEvent = true;
                 Drain();
@@ -426,6 +429,41 @@ internal static class Program
             Thread.Sleep(300);
             try { _window.Invoke(() => _window.Close()); } catch { }
         }
+    }
+
+    private static void RunRapidResizeCheck(PhotinoSurface surface)
+    {
+        const uint flags = 0x0002 | 0x0004 | 0x0010;
+        int procsBefore = System.Diagnostics.Process.GetProcessesByName("msedgewebview2").Length;
+        var rnd = new Random(7);
+        GetWindowRect(_window.WindowHandle, out var mainRect);
+        int mainW = mainRect.Right - mainRect.Left, mainH = mainRect.Bottom - mainRect.Top;
+        for (int i = 0; i < 240; i++)
+        {
+            var h = i % 2 == 0 ? surface.Handle : _window.WindowHandle;
+            bool tiny = i % 4 == 0 || i % 4 == 1;
+            int w = tiny ? 20 + rnd.Next(40) : 300 + rnd.Next(700);
+            int hh = tiny ? 10 + rnd.Next(30) : 200 + rnd.Next(500);
+            SetWindowPos(h, IntPtr.Zero, 0, 0, w, hh, flags);
+            if (!tiny) Thread.Sleep(3);
+        }
+        SetWindowPos(_window.WindowHandle, IntPtr.Zero, 0, 0, mainW, mainH, flags);
+        SetWindowPos(surface.Handle, IntPtr.Zero, 0, 0, 500, 450, flags);
+        Thread.Sleep(2000);
+        Drain();
+        _window.SendWebMessage("geom");
+        var geom = WaitFor("geom", 4000);
+        int procsAfter = System.Diagnostics.Process.GetProcessesByName("msedgewebview2").Length;
+        GetWindowRect(_window.WindowHandle, out var mr);
+        GetWindowRect(surface.Handle, out var sr);
+        var pm = ScreenPixel(mr.Left + 40, mr.Top + 300);
+        var ps = ScreenPixel(sr.Left + 40, sr.Top + 200);
+        bool blackMain = pm.R < 8 && pm.G < 8 && pm.B < 8;
+        bool blackSurface = ps.R < 8 && ps.G < 8 && ps.B < 8;
+        Screenshot(_window.WindowHandle, "main-after-rapid");
+        Screenshot(surface.Handle, "surface-after-rapid");
+        Report("rapid-resize", geom != null && !blackMain && !blackSurface && procsAfter >= procsBefore,
+            $"alive={geom != null} processes {procsBefore}->{procsAfter} mainPixel={pm.R},{pm.G},{pm.B} surfacePixel={ps.R},{ps.G},{ps.B} mainSize={mr.Right - mr.Left}x{mr.Bottom - mr.Top} surfaceSize={sr.Right - sr.Left}x{sr.Bottom - sr.Top}");
     }
 
     private static void RunTransparencyCheck()

@@ -78,6 +78,9 @@ public:
 	int RegionWidth() const { return _regionW; }
 	int RegionHeight() const { return _regionH; }
 	void SetAutoRegionOrigin(int x, int y);
+	int SlotX() const { return _slotX; }
+	int SlotWidth() const { return _slotW; }
+	void SetSlot(int x, int width) { _slotX = x; _slotW = width; }
 	void SetRegion(int x, int y, int width, int height);
 	void SyncRegionToWindow();
 	void SetBackgroundColor(COREWEBVIEW2_COLOR color);
@@ -124,6 +127,8 @@ private:
 	int _regionY;
 	int _regionW;
 	int _regionH;
+	int _slotX = -1;
+	int _slotW = 0;
 	int _minWidth;
 	int _minHeight;
 	std::wstring _title;

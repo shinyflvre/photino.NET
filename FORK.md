@@ -200,6 +200,10 @@ window.addEventListener('photinosurface', e => {
   the web content, so a resize never shows what lies behind the window.
 * Zoom changes, whether set through `Zoom` or by the user, resize the main frame and recompute every surface region so
   the content keeps filling its window.
+* Surfaces keep a fixed position inside the shared page once they are placed. Resizing the main window or another
+  surface does not move them, so their content does not shift while the page catches up with the new layout.
+* If the renderer process exits, the page is reloaded. If the GPU process exits while composition hosting is active,
+  the visual target is attached again so the windows do not stay blank.
 * Surfaces require Windows 10 version 1809 or newer.
 
 ### macOS and Linux
