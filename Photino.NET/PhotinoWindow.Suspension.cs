@@ -54,6 +54,24 @@ public partial class PhotinoWindow
         }
     }
 
+    public bool BackgroundTimerThrottling
+    {
+        get => !_startupParameters.DisableBackgroundTimerThrottling;
+        set
+        {
+            if (_nativeInstance != IntPtr.Zero)
+                throw new ApplicationException("BackgroundTimerThrottling cannot be changed after the Photino window is initialized.");
+            _startupParameters.DisableBackgroundTimerThrottling = !value;
+        }
+    }
+
+    public PhotinoWindow SetBackgroundTimerThrottling(bool enabled)
+    {
+        Log($".SetBackgroundTimerThrottling({enabled})");
+        BackgroundTimerThrottling = enabled;
+        return this;
+    }
+
     public PhotinoWindow SetAutoSuspendOnMinimize(PhotinoSuspendableResources resources)
     {
         Log($".SetAutoSuspendOnMinimize({resources})");

@@ -80,6 +80,7 @@ internal static class Program
             .SetTemporaryFilesPath(userData)
             .SetCompositionHosting(true)
             .SetBrowserControlInitParameters(Environment.GetEnvironmentVariable("PHOTINO_TEST_FLAGS") ?? "")
+            .SetBackgroundTimerThrottling(Environment.GetEnvironmentVariable("PHOTINO_TEST_NO_THROTTLE") != "1")
             .SetAutoSuspendOnMinimize(PhotinoSuspendableResources.All)
             .RegisterWebMessageReceivedHandler((_, msg) =>
             {
@@ -355,6 +356,9 @@ internal static class Program
             var renderAfter = Observe(1500);
             Report("suspend-rendering", render.rafDelta == 0 && render.vis == "hidden" && renderAfter.rafDelta > 5 && renderAfter.vis == "visible",
                 $"hidden: raf+={render.rafDelta} ticks={render.ticks} vis={render.vis}; after: raf+={renderAfter.rafDelta} vis={renderAfter.vis}");
+            bool noThrottle = Environment.GetEnvironmentVariable("PHOTINO_TEST_NO_THROTTLE") == "1";
+            Report("rendering-timers", noThrottle ? render.ticks >= 6 : render.ticks <= 3,
+                $"250 ms interval while rendering suspended: {render.ticks} ticks in 2 s, BackgroundTimerThrottling={!noThrottle}");
 
             _window.Invoke(() => _window.SuspendResources(PhotinoSuspendableResources.Audio | PhotinoSuspendableResources.Gpu));
             Thread.Sleep(500);

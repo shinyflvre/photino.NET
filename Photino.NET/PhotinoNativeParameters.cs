@@ -190,6 +190,8 @@ internal struct PhotinoNativeParameters
 
     [MarshalAs(UnmanagedType.I4)] internal int SurfaceHostMode;
 
+    [MarshalAs(UnmanagedType.I1)] internal bool DisableBackgroundTimerThrottling;
+
 
     ///<summary>Checks the parameters to ensure they are valid before window creation. Called by PhotinoWindow prior to initializing native window.</summary>
     ///<returns>List of error strings</returns>

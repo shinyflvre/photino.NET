@@ -57,6 +57,12 @@ window.AutoSuspendOnMinimize = PhotinoSuspendableResources.None;
 `AutoSuspendOnMinimize` can be set before or after the window is created. `SuspendResources` before the browser
 control exists is queued and applied once the control is available.
 
+`SetBackgroundTimerThrottling(false)` keeps JavaScript timers at full rate while rendering is suspended. Chromium
+otherwise treats the hidden page like a background tab: timers below one second are aligned to one second and, after
+five minutes, repeating timers fire at most once per minute. The option adds `--disable-background-timer-throttling`
+and `--disable-features=IntensiveWakeUpThrottling` to the browser arguments and has to be set before the window is
+created.
+
 | Flag | Mechanism | Effect |
 | --- | --- | --- |
 | `Rendering` | `ICoreWebView2Controller::put_IsVisible(FALSE)` | no compositor frames, no `requestAnimationFrame`, timers throttled, `document.visibilityState` is `hidden` |
@@ -214,7 +220,7 @@ window has its own viewport.
 C# (`Photino.NET`):
 
 * `PhotinoSuspendableResources`, `PhotinoWindow.SuspendResources`, `ResumeResources`, `SuspendedResources`,
-  `AutoSuspendOnMinimize`, `SetAutoSuspendOnMinimize`
+  `AutoSuspendOnMinimize`, `SetAutoSuspendOnMinimize`, `BackgroundTimerThrottling`, `SetBackgroundTimerThrottling`
 * `PhotinoWindow.CompositionHosting`, `SetCompositionHosting`, `SurfaceHostMode`, `SetSurfaceHostMode`,
   `SetBackgroundColor`, `CreateSurface`, `Surfaces`
 * `PhotinoSurface`, `PhotinoSurfaceOptions`

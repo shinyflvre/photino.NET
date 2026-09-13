@@ -202,6 +202,7 @@ Photino::Photino(PhotinoInitParams* initParams)
 	_toastHandler = nullptr;
 	_iconFileName = NULL;
 	_surfaceHostMode = initParams->SurfaceHostMode;
+	_disableBackgroundTimerThrottling = initParams->DisableBackgroundTimerThrottling;
 	_hasBackgroundColor = false;
 	_backgroundColor = COREWEBVIEW2_COLOR{ 255, 255, 255, 255 };
 	_lastInputSurface = nullptr;
@@ -1108,6 +1109,16 @@ void Photino::AttachWebView()
 		startupString += L"--ignore-certificate-errors ";
 	if (_browserControlInitParameters != NULL)
 		startupString += _browserControlInitParameters;	//e.g.--hide-scrollbars
+
+	if (_disableBackgroundTimerThrottling)
+	{
+		startupString += L" --disable-background-timer-throttling";
+		size_t features = startupString.find(L"--disable-features=");
+		if (features == std::wstring::npos)
+			startupString += L" --disable-features=IntensiveWakeUpThrottling";
+		else
+			startupString.insert(features + wcslen(L"--disable-features="), L"IntensiveWakeUpThrottling,");
+	}
 
 	auto options = Microsoft::WRL::Make<CoreWebView2EnvironmentOptions>();
 	if (startupString.length() > 0)

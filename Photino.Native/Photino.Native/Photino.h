@@ -172,6 +172,7 @@ struct PhotinoInitParams
 	bool CompositionHosting;
 	int AutoSuspendOnMinimize;
 	int SurfaceHostMode;
+	bool DisableBackgroundTimerThrottling;
 };
 
 enum PhotinoSurfaceHostMode : int
@@ -247,6 +248,7 @@ private:
 	bool _hasBackgroundColor;
 	COREWEBVIEW2_COLOR _backgroundColor;
 	int _surfaceHostMode;
+	bool _disableBackgroundTimerThrottling;
 	std::wstring _hostUrl;
 	std::wstring _appUrl;
 	PhotinoSurface *_lastInputSurface;
