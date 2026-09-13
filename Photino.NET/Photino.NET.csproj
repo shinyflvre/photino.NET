@@ -50,8 +50,8 @@
 		<PackageReference Include="Photino.Native" Version="4.0.22" />
 	</ItemGroup>
 
-	<Target Name="PhotinoBuildForkNative" BeforeTargets="BeforeBuild;ResolvePackageAssets" Condition="'$(PhotinoUseForkNative)' != 'true' and $([MSBuild]::IsOSPlatform('Windows')) and !$(RuntimeIdentifier.StartsWith('osx')) and !$(RuntimeIdentifier.StartsWith('linux')) and Exists('$(MSBuildThisFileDirectory)..uild-native.cmd')">
-		<Exec Command="&quot;$(MSBuildThisFileDirectory)..uild-native.cmd&quot; $(PhotinoNativeWinPlatform)" ContinueOnError="true" />
+	<Target Name="PhotinoBuildForkNative" BeforeTargets="BeforeBuild;ResolvePackageAssets" Condition="'$(PhotinoUseForkNative)' != 'true' and $([MSBuild]::IsOSPlatform('Windows')) and !$(RuntimeIdentifier.StartsWith('osx')) and !$(RuntimeIdentifier.StartsWith('linux')) and Exists('$(MSBuildThisFileDirectory)..\build-native.cmd')">
+		<Exec Command="&quot;$(MSBuildThisFileDirectory)..\build-native.cmd&quot; $(PhotinoNativeWinPlatform)" ContinueOnError="true" />
 	</Target>
 
 	<Target Name="PhotinoWarnMissingForkNative" BeforeTargets="Build" Condition="!Exists('$(PhotinoNativeWinDll)') and $([MSBuild]::IsOSPlatform('Windows')) and !$(RuntimeIdentifier.StartsWith('osx')) and !$(RuntimeIdentifier.StartsWith('linux'))">
