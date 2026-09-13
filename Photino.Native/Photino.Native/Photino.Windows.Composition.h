@@ -79,8 +79,10 @@ public:
 	int RegionHeight() const { return _regionH; }
 	void SetAutoRegionOrigin(int x, int y);
 	int SlotX() const { return _slotX; }
+	int SlotY() const { return _slotY; }
 	int SlotWidth() const { return _slotW; }
-	void SetSlot(int x, int width) { _slotX = x; _slotW = width; }
+	int SlotHeight() const { return _slotH; }
+	void SetSlot(int x, int y, int width, int height) { _slotX = x; _slotY = y; _slotW = width; _slotH = height; }
 	void SetRegion(int x, int y, int width, int height);
 	void SyncRegionToWindow();
 	void SetBackgroundColor(COREWEBVIEW2_COLOR color);
@@ -128,7 +130,9 @@ private:
 	int _regionW;
 	int _regionH;
 	int _slotX = -1;
+	int _slotY = 0;
 	int _slotW = 0;
+	int _slotH = 0;
 	int _minWidth;
 	int _minHeight;
 	std::wstring _title;

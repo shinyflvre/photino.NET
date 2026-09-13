@@ -202,6 +202,8 @@ window.addEventListener('photinosurface', e => {
   the content keeps filling its window.
 * Surfaces keep a fixed position inside the shared page once they are placed. Resizing the main window or another
   surface does not move them, so their content does not shift while the page catches up with the new layout.
+* The shared page is one GPU surface, so surfaces are packed into rows of at most 8192 physical pixels instead of a
+  single row. This keeps any number of surfaces below the texture size limit that would otherwise leave windows blank.
 * If the renderer process exits, the page is reloaded. If the GPU process exits while composition hosting is active,
   the visual target is attached again so the windows do not stay blank.
 * Surfaces require Windows 10 version 1809 or newer.

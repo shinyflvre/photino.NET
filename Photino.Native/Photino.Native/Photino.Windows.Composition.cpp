@@ -421,6 +421,8 @@ double Photino::GetZoomFactor()
 	return 1.0;
 }
 
+static const int PHOTINO_MAX_SURFACE_PX = 8192;
+
 void Photino::OnZoomFactorChanged()
 {
 	for (auto s : _surfaces)
@@ -443,33 +445,65 @@ void Photino::UpdateWebViewLayout()
 		double scale = GetRasterizationScale();
 		double zoom = GetZoomFactor();
 		double cssPerPixel = 1.0 / (scale * zoom);
-		int mainCss = (int)std::ceil(width * cssPerPixel);
-		if (mainCss > _mainSlotWidth) _mainSlotWidth = mainCss;
+		int mainCssW = (int)std::ceil(width * cssPerPixel);
+		int mainCssH = (int)std::ceil(height * cssPerPixel);
+		if (mainCssW > _mainSlotWidth) _mainSlotWidth = mainCssW;
+		if (mainCssH > _mainSlotHeight) _mainSlotHeight = mainCssH;
+		int maxRow = (std::max)(_mainSlotWidth, (int)std::floor(PHOTINO_MAX_SURFACE_PX * cssPerPixel));
 
+		struct SlotRect { int x, y, w, h; };
+		auto overlaps = [](const SlotRect &a, const SlotRect &b) {
+			return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+		};
 		std::vector<PhotinoSurface *> autoSurfaces;
-		int end = _mainSlotWidth;
 		for (auto s : _surfaces)
-		{
-			if (s->IsClosed() || !s->IsAutoLayout()) continue;
-			if (s->SlotX() >= 0) end = (std::max)(end, s->SlotX() + s->SlotWidth());
-			autoSurfaces.push_back(s);
-		}
+			if (!s->IsClosed() && s->IsAutoLayout()) autoSurfaces.push_back(s);
+
+		auto placedRects = [&](PhotinoSurface *skip) {
+			std::vector<SlotRect> rects{ SlotRect{ 0, 0, _mainSlotWidth, _mainSlotHeight } };
+			for (auto o : autoSurfaces)
+				if (o != skip && o->SlotX() >= 0) rects.push_back(SlotRect{ o->SlotX(), o->SlotY(), o->SlotWidth(), o->SlotHeight() });
+			return rects;
+		};
+		auto fits = [&](const SlotRect &r, const std::vector<SlotRect> &rects) {
+			if (r.x < 0 || r.y < 0) return false;
+			if (r.x + r.w > maxRow && r.x != 0) return false;
+			for (auto &o : rects) if (overlaps(r, o)) return false;
+			return true;
+		};
+
 		for (auto s : autoSurfaces)
 		{
 			int w = (std::max)(1, s->RegionWidth());
-			bool place = s->SlotX() < 0;
-			if (!place)
+			int h = (std::max)(1, s->RegionHeight());
+			auto rects = placedRects(s);
+			bool keep = false;
+			if (s->SlotX() >= 0)
 			{
-				int x = s->SlotX();
-				int sw = (std::max)(s->SlotWidth(), w);
-				if (x < _mainSlotWidth) place = true;
-				else
-					for (auto o : autoSurfaces)
-						if (o != s && o->SlotX() >= 0 && x < o->SlotX() + o->SlotWidth() && x + sw > o->SlotX()) { place = true; break; }
-				if (!place) s->SetSlot(x, sw);
+				SlotRect grown{ s->SlotX(), s->SlotY(), (std::max)(s->SlotWidth(), w), (std::max)(s->SlotHeight(), h) };
+				if (fits(grown, rects)) { s->SetSlot(grown.x, grown.y, grown.w, grown.h); keep = true; }
 			}
-			if (place) { s->SetSlot(end, w); end += w; }
-			s->SetAutoRegionOrigin(s->SlotX(), 0);
+			if (!keep)
+			{
+				SlotRect best{ -1, -1, w, h };
+				for (auto &r : rects)
+				{
+					SlotRect candidates[2] = { SlotRect{ r.x + r.w, r.y, w, h }, SlotRect{ 0, r.y + r.h, w, h } };
+					for (auto &c : candidates)
+					{
+						if (!fits(c, rects)) continue;
+						if (best.x < 0 || c.y < best.y || (c.y == best.y && c.x < best.x)) best = c;
+					}
+				}
+				if (best.x < 0)
+				{
+					int bottom = 0;
+					for (auto &r : rects) bottom = (std::max)(bottom, r.y + r.h);
+					best = SlotRect{ 0, bottom, w, h };
+				}
+				s->SetSlot(best.x, best.y, best.w, best.h);
+			}
+			s->SetAutoRegionOrigin(s->SlotX(), s->SlotY());
 		}
 
 		for (auto s : _surfaces)

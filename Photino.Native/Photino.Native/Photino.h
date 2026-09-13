@@ -254,6 +254,7 @@ private:
 	PhotinoSurface *_lastInputSurface;
 	bool _hostHidden;
 	int _mainSlotWidth = 0;
+	int _mainSlotHeight = 0;
 	std::vector<PhotinoSurface *> _surfacesHiddenWithHost;
 	bool EnsureWebViewIsInstalled();
 	bool InstallWebView2();

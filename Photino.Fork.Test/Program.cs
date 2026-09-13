@@ -418,6 +418,7 @@ internal static class Program
                 Report("surface-close", closedEvent && surface.IsClosed && _window.Surfaces.Count == 0 && removed != null, $"closed={closedEvent} isClosed={surface.IsClosed} count={_window.Surfaces.Count} jsRemoved={removed != null}");
             }
 
+            RunManySurfacesCheck();
             RunTransparencyCheck();
         }
         catch (Exception ex)
@@ -464,6 +465,42 @@ internal static class Program
         Screenshot(surface.Handle, "surface-after-rapid");
         Report("rapid-resize", geom != null && !blackMain && !blackSurface && procsAfter >= procsBefore,
             $"alive={geom != null} processes {procsBefore}->{procsAfter} mainPixel={pm.R},{pm.G},{pm.B} surfacePixel={ps.R},{ps.G},{ps.B} mainSize={mr.Right - mr.Left}x{mr.Bottom - mr.Top} surfaceSize={sr.Right - sr.Left}x{sr.Bottom - sr.Top}");
+    }
+
+    private static void RunManySurfacesCheck()
+    {
+        var list = new List<PhotinoSurface>();
+        for (int i = 0; i < 11; i++)
+        {
+            int idx = i;
+            _window.Invoke(() =>
+            {
+                list.Add(_window.CreateSurface(new PhotinoSurfaceOptions { Title = "Surface " + idx, Width = 900, Height = 300, Location = new Point(200 + idx * 30, 80 + idx * 30), FollowOwnerVisibility = false }));
+            });
+            Thread.Sleep(150);
+        }
+        Thread.Sleep(2500);
+        int rows = list.Select(s => s.Region.Y).Distinct().Count();
+        int unionW = list.Max(s => s.Region.X + s.Region.Width);
+        int unionH = list.Max(s => s.Region.Y + s.Region.Height);
+        double scale = list[0].DpiScale * (_window.Zoom / 100.0);
+        var last = list[^1];
+        Color center;
+        GetWindowRect(last.Handle, out var r);
+        using (var bmp = new Bitmap(Math.Max(1, r.Right - r.Left), Math.Max(1, r.Bottom - r.Top)))
+        using (var g = Graphics.FromImage(bmp))
+        {
+            var hdc = g.GetHdc();
+            PrintWindow(last.Handle, hdc, 2);
+            g.ReleaseHdc(hdc);
+            center = bmp.GetPixel(bmp.Width / 2, bmp.Height / 2);
+            bmp.Save(Path.Combine(_outDir, "surface-11.png"), ImageFormat.Png);
+        }
+        bool blank = center.R < 8 && center.G < 8 && center.B < 8;
+        Report("many-surfaces", rows >= 2 && unionW * scale <= 8192 && !blank,
+            $"surfaces={list.Count} rows={rows} union={unionW}x{unionH} css ({unionW * scale:0}x{unionH * scale:0} px) last center pixel={center.R},{center.G},{center.B}");
+        foreach (var s in list) { try { s.Close(); } catch { } }
+        Thread.Sleep(800);
     }
 
     private static void RunTransparencyCheck()
