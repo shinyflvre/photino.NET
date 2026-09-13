@@ -338,6 +338,7 @@ public:
 	void RemoveSurface(PhotinoSurface *surface);
 	const std::vector<PhotinoSurface *> &GetSurfaces() const { return _surfaces; }
 	void UpdateWebViewLayout();
+	void OnZoomFactorChanged();
 	double GetRasterizationScale();
 	double GetZoomFactor();
 	HWND GetWebViewInputHwnd();

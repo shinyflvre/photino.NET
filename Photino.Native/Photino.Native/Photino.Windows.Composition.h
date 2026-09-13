@@ -4,6 +4,7 @@
 #include <winrt/base.h>
 #include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.Foundation.Numerics.h>
+#include <winrt/Windows.UI.h>
 #include <winrt/Windows.UI.Composition.h>
 #include <winrt/Windows.UI.Composition.Desktop.h>
 #include <winrt/Windows.System.h>
@@ -22,6 +23,7 @@ public:
 	bool Initialize();
 	IUnknown *GetRootVisualTarget();
 	void SetWebViewSize(float width, float height);
+	void SetBackgroundColor(COREWEBVIEW2_COLOR color);
 	void SetContentAttached(bool attached);
 	bool IsContentAttached() const { return _attached; }
 	winrt::Windows::UI::Composition::Compositor GetCompositor() { return _compositor; }
@@ -47,6 +49,7 @@ private:
 	winrt::Windows::UI::Composition::Desktop::DesktopWindowTarget _target{ nullptr };
 	winrt::Windows::UI::Composition::ContainerVisual _root{ nullptr };
 	winrt::Windows::UI::Composition::ContainerVisual _webRoot{ nullptr };
+	winrt::Windows::UI::Composition::SpriteVisual _background{ nullptr };
 	std::map<HWND, PhotinoDropTarget *> _dropTargets;
 };
 
@@ -76,6 +79,8 @@ public:
 	int RegionHeight() const { return _regionH; }
 	void SetAutoRegionOrigin(int x, int y);
 	void SetRegion(int x, int y, int width, int height);
+	void SyncRegionToWindow();
+	void SetBackgroundColor(COREWEBVIEW2_COLOR color);
 	void SetAutoLayout(bool autoLayout);
 	void ApplyLayout(double rasterizationScale, double zoom, float webWidth, float webHeight);
 
@@ -134,5 +139,6 @@ private:
 	winrt::Windows::UI::Composition::ContainerVisual _root{ nullptr };
 	winrt::Windows::UI::Composition::ContainerVisual _scaler{ nullptr };
 	winrt::Windows::UI::Composition::RedirectVisual _redirect{ nullptr };
+	winrt::Windows::UI::Composition::SpriteVisual _background{ nullptr };
 };
 #endif

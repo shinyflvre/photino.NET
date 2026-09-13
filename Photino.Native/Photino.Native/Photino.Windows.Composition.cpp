@@ -205,6 +205,22 @@ void PhotinoCompositionHost::SetWebViewSize(float width, float height)
 	if (_webRoot) _webRoot.Size({ width, height });
 }
 
+void PhotinoCompositionHost::SetBackgroundColor(COREWEBVIEW2_COLOR color)
+{
+	if (!_root || !_compositor) return;
+	try
+	{
+		if (!_background)
+		{
+			_background = _compositor.CreateSpriteVisual();
+			_background.RelativeSizeAdjustment({ 1.0f, 1.0f });
+			_root.Children().InsertAtBottom(_background);
+		}
+		_background.Brush(_compositor.CreateColorBrush(winrt::Windows::UI::Color{ color.A, color.R, color.G, color.B }));
+	}
+	catch (...) {}
+}
+
 void PhotinoCompositionHost::SetContentAttached(bool attached)
 {
 	if (attached == _attached || !_root || !_webRoot) return;
@@ -405,6 +421,13 @@ double Photino::GetZoomFactor()
 	return 1.0;
 }
 
+void Photino::OnZoomFactorChanged()
+{
+	for (auto s : _surfaces)
+		if (!s->IsClosed()) s->SyncRegionToWindow();
+	UpdateWebViewLayout();
+}
+
 void Photino::UpdateWebViewLayout()
 {
 	if (!_webviewController) return;
@@ -503,6 +526,7 @@ PhotinoSurface *Photino::CreateSurface(PhotinoSurfaceParams *params)
 		return nullptr;
 	}
 	_surfaces.push_back(surface);
+	if (_hasBackgroundColor) surface->SetBackgroundColor(_backgroundColor);
 	_composition->RegisterDropTarget(surface->GetHwnd(), surface);
 	if (params->Visible)
 		surface->SetVisible(true);
@@ -906,6 +930,29 @@ void PhotinoSurface::SetRegion(int x, int y, int width, int height)
 	if (height > 0 && height != _regionH) { _regionH = height; sizeChanged = true; }
 	if (sizeChanged) ResizeWindowToRegion();
 	_owner->UpdateWebViewLayout();
+}
+
+void PhotinoSurface::SyncRegionToWindow()
+{
+	if (_hWnd == nullptr || _closed) return;
+	UpdateRegionFromClient();
+}
+
+void PhotinoSurface::SetBackgroundColor(COREWEBVIEW2_COLOR color)
+{
+	if (!_root) return;
+	try
+	{
+		auto compositor = PhotinoCompositionHost::GetThreadCompositor();
+		if (!_background)
+		{
+			_background = compositor.CreateSpriteVisual();
+			_background.RelativeSizeAdjustment({ 1.0f, 1.0f });
+			_root.Children().InsertAtBottom(_background);
+		}
+		_background.Brush(compositor.CreateColorBrush(winrt::Windows::UI::Color{ color.A, color.R, color.G, color.B }));
+	}
+	catch (...) {}
 }
 
 void PhotinoSurface::SetAutoLayout(bool autoLayout)

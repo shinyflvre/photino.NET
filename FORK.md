@@ -196,7 +196,10 @@ window.addEventListener('photinosurface', e => {
   requested through `DWMWA_WINDOW_CORNER_PREFERENCE`.
 * Transparent windows (`SetTransparent(true)`) work in composition mode through per-pixel alpha.
 * `SetBackgroundColor(Color)` sets the WebView's default background color, visible where the page has not painted yet,
-  for example during a resize.
+  for example during a resize. In composition mode the same color also fills the host window and every surface behind
+  the web content, so a resize never shows what lies behind the window.
+* Zoom changes, whether set through `Zoom` or by the user, resize the main frame and recompute every surface region so
+  the content keeps filling its window.
 * Surfaces require Windows 10 version 1809 or newer.
 
 ### macOS and Linux

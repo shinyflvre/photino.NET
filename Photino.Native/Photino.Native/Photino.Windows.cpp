@@ -796,6 +796,9 @@ void Photino::SetBackgroundColor(int r, int g, int b, int a)
 {
 	_backgroundColor = COREWEBVIEW2_COLOR{ (BYTE)a, (BYTE)r, (BYTE)g, (BYTE)b };
 	_hasBackgroundColor = true;
+	if (_composition) _composition->SetBackgroundColor(_backgroundColor);
+	for (auto s : _surfaces)
+		if (!s->IsClosed()) s->SetBackgroundColor(_backgroundColor);
 	if (!_webviewController) return;
 	wil::com_ptr<ICoreWebView2Controller2> controller2;
 	if (SUCCEEDED(_webviewController->QueryInterface(IID_PPV_ARGS(&controller2))))
@@ -954,7 +957,7 @@ void Photino::SetZoom(int zoom)
 {
 	double newZoom = zoom / 100.0;
 	HRESULT r = _webviewController->put_ZoomFactor(newZoom);
-	if (_compositionHosting) UpdateWebViewLayout();
+	if (_compositionHosting) OnZoomFactorChanged();
 	//wchar_t msg[50];
 	//swprintf(msg, 50, L"newZoom: %f", newZoom);
 	//MessageBox(nullptr, msg, L"Setter", MB_OK);
@@ -1261,6 +1264,13 @@ void Photino::OnControllerCreated(ICoreWebView2Controller* controller)
 				if (_composition) _composition->OnCursorChanged();
 				return S_OK;
 			}).Get(), &cursorToken);
+
+		EventRegistrationToken zoomToken;
+		_webviewController->add_ZoomFactorChanged(Callback<ICoreWebView2ZoomFactorChangedEventHandler>(
+			[this](ICoreWebView2Controller* sender, IUnknown* args) -> HRESULT {
+				OnZoomFactorChanged();
+				return S_OK;
+			}).Get(), &zoomToken);
 
 		wil::com_ptr<ICoreWebView2Controller3> controller3;
 		if (SUCCEEDED(_webviewController->QueryInterface(IID_PPV_ARGS(&controller3))))
