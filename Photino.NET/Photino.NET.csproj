@@ -50,7 +50,11 @@
 		<PackageReference Include="Photino.Native" Version="4.0.22" />
 	</ItemGroup>
 
-	<Target Name="PhotinoWarnMissingForkNative" BeforeTargets="Build" Condition="'$(PhotinoUseForkNative)' != 'true' and $([MSBuild]::IsOSPlatform('Windows')) and !$(RuntimeIdentifier.StartsWith('osx')) and !$(RuntimeIdentifier.StartsWith('linux'))">
+	<Target Name="PhotinoBuildForkNative" BeforeTargets="BeforeBuild;ResolvePackageAssets" Condition="'$(PhotinoUseForkNative)' != 'true' and $([MSBuild]::IsOSPlatform('Windows')) and !$(RuntimeIdentifier.StartsWith('osx')) and !$(RuntimeIdentifier.StartsWith('linux')) and Exists('$(MSBuildThisFileDirectory)..uild-native.cmd')">
+		<Exec Command="&quot;$(MSBuildThisFileDirectory)..uild-native.cmd&quot; $(PhotinoNativeWinPlatform)" ContinueOnError="true" />
+	</Target>
+
+	<Target Name="PhotinoWarnMissingForkNative" BeforeTargets="Build" Condition="!Exists('$(PhotinoNativeWinDll)') and $([MSBuild]::IsOSPlatform('Windows')) and !$(RuntimeIdentifier.StartsWith('osx')) and !$(RuntimeIdentifier.StartsWith('linux'))">
 		<Warning Text="Photino fork: native Windows build not found at $(PhotinoNativeWinDll). Falling back to the Photino.Native NuGet binary; CompositionHosting, surfaces and resource suspension are unavailable. Run build-native.cmd in the fork root." />
 	</Target>
 
