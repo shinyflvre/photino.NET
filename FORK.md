@@ -240,3 +240,10 @@ Photino.Fork.Test.exe <output directory>
 ```
 
 Optional Chromium flags for the run can be passed through the `PHOTINO_TEST_FLAGS` environment variable.
+
+## License
+
+Photino.NET and Photino.Native are licensed under the Apache License, Version 2.0. This fork, including all
+modifications and additions described above, is distributed under the same license. See `LICENSE` in the repository
+root and `Photino.Native/LICENSE`. Copyright of the original work remains with the Photino project (TryPhotino);
+modifications are marked as such in accordance with section 4 of the license.
