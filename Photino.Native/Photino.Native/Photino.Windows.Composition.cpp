@@ -614,7 +614,26 @@ static const wchar_t *HOST_PAGE_SCRIPT = LR"JS(
 		}
 	}
 	window.addEventListener('photinolayout', function (e) { apply(e.detail); });
-	main.addEventListener('load', function () { if (window.__photinoLayout) apply(window.__photinoLayout); });
+	var titleObserver = null;
+	function syncTitle() {
+		var w = mainWin();
+		if (!w) return;
+		try { if (document.title !== w.document.title) document.title = w.document.title; } catch (e) { }
+	}
+	function watchTitle() {
+		var w = mainWin();
+		if (!w) return;
+		try {
+			if (titleObserver) titleObserver.disconnect();
+			titleObserver = new MutationObserver(syncTitle);
+			titleObserver.observe(w.document.head || w.document, { childList: true, subtree: true, characterData: true });
+		} catch (e) { }
+		syncTitle();
+	}
+	main.addEventListener('load', function () {
+		if (window.__photinoLayout) apply(window.__photinoLayout);
+		watchTitle();
+	});
 	if (window.__photinoLayout) apply(window.__photinoLayout);
 	window.external.receiveMessage(function (data) {
 		var w = mainWin();
@@ -630,7 +649,7 @@ static const wchar_t *HOST_PAGE_SCRIPT = LR"JS(
 bool Photino::TryServeHostPage(const std::wstring &uri, ICoreWebView2WebResourceRequestedEventArgs *args)
 {
 	if (!UsesFrameHost() || _wcsicmp(uri.c_str(), _hostUrl.c_str()) != 0) return false;
-	std::wstring html = L"<!doctype html><html><head><meta charset=\"utf-8\"><title>Photino host</title>"
+	std::wstring html = L"<!doctype html><html><head><meta charset=\"utf-8\"><title>" + HtmlAttributeEscape(_windowTitle ? std::wstring(_windowTitle) : std::wstring()) + L"</title>"
 		L"<style>html,body{margin:0;padding:0;overflow:hidden;background:transparent;width:100%;height:100%}"
 		L"iframe{position:absolute;left:0;top:0;border:0;margin:0;padding:0;display:block;background:transparent}</style></head>"
 		L"<body><iframe id=\"photino-main\" name=\"photino-main\" src=\"" + HtmlAttributeEscape(_appUrl) + L"\"></iframe><script>";
